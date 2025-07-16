@@ -1,3 +1,4 @@
+# Copyright: https://github.com/Mejatintiwari/FbCreator
 import threading
 from queue import Queue
 import requests
@@ -20,10 +21,12 @@ print('\x1b[38;5;208m⇼'*60)
 
 def generate_random_string(length):
     letters_and_digits = string.ascii_letters + string.digits
-    return ''.join(random.choice(letters_and_digits) for i in range(length))
+    # random.choice() - Returns a random item from a list, tuple, or string
+    return ''.join(random.choice(letters_and_digits) for i in range(length)) 
 
 def get_mail_domains(proxy=None):
     url = "https://api.mail.tm/domains"
+    # https://docs.mail.tm/ - API for creating temporary email accounts
     try:
         response = requests.get(url, proxies=proxy)
         if response.status_code == 200:
@@ -108,12 +111,17 @@ def test_proxy_helper(proxy):
         return False
 
 def load_proxies():
+    proxies = []
     with open('proxies.txt', 'r') as file:
-        proxies = [line.strip() for line in file]
+        for line in file:
+            if line[0] != '#': proxies.append(line.strip()) 
     return [{'http': f'http://{proxy}'} for proxy in proxies]
 
 def get_working_proxies():
     proxies = load_proxies()
+    if len(proxies) == 0:
+        return [None]
+
     valid_proxies = []
     q = Queue()
     for proxy in proxies:

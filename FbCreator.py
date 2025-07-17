@@ -8,6 +8,11 @@ import json
 import hashlib
 from faker import Faker
 
+import platform
+if platform.system() == 'Windows':
+    from colorama import just_fix_windows_console
+    just_fix_windows_console()
+
 print(f"""
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓           
 > › Github :- @jatintiwari0 
@@ -17,7 +22,7 @@ print(f"""
 print('\x1b[38;5;208m⇼'*60)
 print('\x1b[38;5;22m•'*60)
 print('\x1b[38;5;22m•'*60)
-print('\x1b[38;5;208m⇼'*60)
+print('\x1b[38;5;208m⇼'*60+'\x1b[37m '*1)
 
 def generate_random_string(length):
     letters_and_digits = string.ascii_letters + string.digits
@@ -73,6 +78,7 @@ def register_facebook_account(email, password, first_name, last_name, birthday, 
     req['sig'] = ensig
     api_url = 'https://b-api.facebook.com/method/user.register'
     reg = _call(api_url, req, proxy)
+    print(req) ######### DEBUG
     id = reg['new_user_id']
     token = reg['session_info']['access_token']
     print(f'''
@@ -153,4 +159,4 @@ else:
         if email and password and first_name and last_name and birthday:
             register_facebook_account(email, password, first_name, last_name, birthday, proxy)
 
-print('\x1b[38;5;208m⇼'*60)
+print('\x1b[38;5;208m⇼'*60+'\x1b[37m '*1)

@@ -1,4 +1,5 @@
 # Copyright: https://github.com/Mejatintiwari/FbCreator
+import sys
 import threading
 from queue import Queue
 import requests
@@ -67,7 +68,11 @@ def create_mail_tm_account(proxy=None):
             print(f'[×] Error : {e}')
             return None, None, None, None, None
 
-def register_facebook_account(email, password, first_name, last_name, birthday, proxy=None):
+def log_and_display(msg, fds):
+    for fd in fds:
+        print(msg, file=fd)
+
+def register_facebook_account(email, password, first_name, last_name, birthday, fds, proxy=None):
     api_key = '882a8490361da98702bf97a021ddc14d'
     secret = '62f8ce9f74b12f84c123cc23437a4a32'
     gender = random.choice(['M', 'F'])
@@ -81,18 +86,17 @@ def register_facebook_account(email, password, first_name, last_name, birthday, 
     print(req) ######### DEBUG
     id = reg['new_user_id']
     token = reg['session_info']['access_token']
-    print(f'''
------------GENERATED-----------
+    log_and_display(f'''
+----------- GENERATED ACCOUNT -----------
 EMAIL : {email}
 ID : {id}
 PASSWORD : {password}
 NAME : {first_name} {last_name}
 BIRTHDAY : {birthday} 
 GENDER : {gender}
------------GENERATED-----------
+
 Token : {token}
------------GENERATED-----------''')
-    open('username.txt', 'a')
+-----------------------------------------''', fds)
 
 def _call(url, params, proxy=None, post=True):
     headers = {'User-Agent': '[FBAN/FB4A;FBAV/35.0.0.48.273;FBDM/{density=1.33125,width=800,height=1205};FBLC/en_US;FBCR/;FBPN/com.facebook.katana;FBDV/Nexus 7;FBSV/4.1.1;FBBK/0;]'}
@@ -153,10 +157,11 @@ working_proxies = get_working_proxies()
 if not working_proxies:
     print('[×] No working proxies found. Please check your proxies.')
 else:
+    fds = [sys.stdout, open('username.txt', 'a')]
     for i in range(int(input('[+] How Many Accounts You Want:  '))):
         proxy = random.choice(working_proxies)
         email, password, first_name, last_name, birthday = create_mail_tm_account(proxy)
         if email and password and first_name and last_name and birthday:
-            register_facebook_account(email, password, first_name, last_name, birthday, proxy)
+            register_facebook_account(email, password, first_name, last_name, birthday, fds, proxy)
 
 print('\x1b[38;5;208m⇼'*60+'\x1b[37m '*1)

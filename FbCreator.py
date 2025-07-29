@@ -1,6 +1,8 @@
 # Copyright: https://github.com/Mejatintiwari/FbCreator
 import sys
-import threading
+import os
+import datetime
+#import threading
 from queue import Queue
 import requests
 import random
@@ -44,38 +46,99 @@ def get_mail_domains(proxy=None):
         print(f'[×] Error : {e}')
         return None
 
-def create_mail_tm_account(proxy=None):
+def generated_account_values():
     fake = Faker()
+    password = fake.password()
+    birthday = fake.date_of_birth(minimum_age=18, maximum_age=75)
+    first_name = fake.first_name()
+    last_name = fake.last_name()
+    gender = random.choice(['M', 'F'])
+
+    return password, birthday, first_name, last_name, gender
+
+def create_mail_tm_account(password, proxy=None):
     mail_domains = get_mail_domains(proxy)
     if mail_domains:
-        domain = random.choice(mail_domains)['domain']
         username = generate_random_string(10)
-        password = fake.password()
-        birthday = fake.date_of_birth(minimum_age=18, maximum_age=45)
-        first_name = fake.first_name()
-        last_name = fake.last_name()
+        domain = random.choice(mail_domains)['domain']
         url = "https://api.mail.tm/accounts"
         headers = {"Content-Type": "application/json"}
         data = {"address": f"{username}@{domain}", "password":password}       
         try:
             response = requests.post(url, headers=headers, json=data, proxies=proxy)
             if response.status_code == 201:
-                return f"{username}@{domain}", password, first_name, last_name, birthday
+                return f"{username}@{domain}"
             else:
                 print(f'[×] Email Error : {response.text}')
-                return None, None, None, None, None
+                return None
         except Exception as e:
             print(f'[×] Error : {e}')
-            return None, None, None, None, None
+            return None
 
 def log_and_display(msg, fds):
     for fd in fds:
         print(msg, file=fd)
 
-def register_facebook_account(email, password, first_name, last_name, birthday, fds, proxy=None):
+class Account_Config: pass
+def get_initialized_acc_cfg():
+    obj = Account_Config()
+    obj.email = None
+    obj.first_name = None
+    obj.last_name = None
+    obj.birthday = None
+    obj.gender = None
+    return obj
+
+def make_account_values(proxy=None):
+    if make_account_values.fd is None:
+        cfg_fpath = os.path.dirname(os.path.abspath(sys.argv[0]))
+        cfg_fpath = os.path.join(cfg_fpath, "account_values.cfg")
+        make_account_values.fd = open(cfg_fpath, "r")
+        make_account_values.lines = make_account_values.fd.readlines()
+
+    acc_cfg = None
+    while make_account_values.idx < len(make_account_values.lines):
+        line = make_account_values.lines[make_account_values.idx].strip()
+        make_account_values.idx += 1
+        if (not len(line)) or (line[0] == '#'):
+            continue
+        acc_cfg = get_initialized_acc_cfg()
+        fields = line.split(',')
+        for field in fields:
+            idx = field.index(':') # exception on valid configuration string
+            key = field[:idx].strip()
+            value = field[idx + 1:].strip()
+            # email: 6jM2JvLpwG@mechanicspedia.com, name: Kathy Barry, birthday: 1987-10-30, gender: F
+            if key == "email":
+                acc_cfg.email = value
+            elif key == "name":
+                i = value.find(' ')
+                if i < 0:
+                    acc_cfg.first_name = value
+                else:
+                    acc_cfg.first_name = value[:i]
+                    acc_cfg.last_name = value[i+1:].strip()
+            elif key == "birthday":
+                acc_cfg.birthday = datetime.datetime.strptime(value, "%Y-%m-%d").date()
+            elif key == "gender":
+                acc_cfg.gender = value
+        break
+
+    password, birthday, first_name, last_name, gender = generated_account_values()
+    birthday = birthday if (acc_cfg is None) or (acc_cfg.birthday is None) else acc_cfg.birthday
+    first_name = first_name if (acc_cfg is None) or (acc_cfg.first_name is None) else acc_cfg.first_name
+    last_name = last_name if (acc_cfg is None) or (acc_cfg.last_name is None) else acc_cfg.last_name
+    gender = gender if (acc_cfg is None) or (acc_cfg.gender is None) else acc_cfg.gender
+    email = create_mail_tm_account(password, proxy) if (acc_cfg is None) or (acc_cfg.email is None) else acc_cfg.email
+    return email, password, first_name, last_name, birthday, gender
+
+make_account_values.fd = None
+make_account_values.lines = []
+make_account_values.idx = 0
+
+def register_facebook_account(email, password, first_name, last_name, birthday, gender, fds, proxy=None):
     api_key = '882a8490361da98702bf97a021ddc14d'
     secret = '62f8ce9f74b12f84c123cc23437a4a32'
-    gender = random.choice(['M', 'F'])
     req = {'api_key': api_key,'attempt_login': True,'birthday': birthday.strftime('%Y-%m-%d'),'client_country_code': 'EN','fb_api_caller_class': 'com.facebook.registration.protocol.RegisterAccountMethod','fb_api_req_friendly_name': 'registerAccount','firstname': first_name,'format': 'json','gender': gender,'lastname': last_name,'email': email,'locale': 'en_US','method': 'user.register','password': password,'reg_instance': generate_random_string(32),'return_multiple_errors': True}
     sorted_req = sorted(req.items(), key=lambda x: x[0])
     sig = ''.join(f'{k}={v}' for k, v in sorted_req)
@@ -160,8 +223,8 @@ else:
     fds = [sys.stdout, open('username.txt', 'a')]
     for i in range(int(input('[+] How Many Accounts You Want:  '))):
         proxy = random.choice(working_proxies)
-        email, password, first_name, last_name, birthday = create_mail_tm_account(proxy)
+        email, password, first_name, last_name, birthday, gender =  make_account_values(proxy)
         if email and password and first_name and last_name and birthday:
-            register_facebook_account(email, password, first_name, last_name, birthday, fds, proxy)
+            register_facebook_account(email, password, first_name, last_name, birthday, gender, fds, proxy)
 
 print('\x1b[38;5;208m⇼'*60+'\x1b[37m '*1)
